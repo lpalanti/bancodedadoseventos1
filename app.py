@@ -114,8 +114,8 @@ with col2:
     
     # Aplicar filtros
         if not df.empty:
-        if categoria_filtro != "TODAS":
-            df = df[df.categoria == categoria_filtro]
+            if categoria_filtro != "TODAS":
+                df = df[df.categoria == categoria_filtro]
         
         if tags_filtro:
             df = df[df.tags.apply(
