@@ -139,7 +139,7 @@ with aba1:
             if tags_filtro:
                 df = df[df.tags.apply(
                     lambda x: any(tag in str(x).split(", ") for tag in tags_filtro
-                )]
+                )
             
             st.write(f"**Fornecedores encontrados:** {len(df)}")
             
