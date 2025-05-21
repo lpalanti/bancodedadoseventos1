@@ -155,7 +155,7 @@ with aba2:
             email = st.text_input("E-mail*")
             telefone = st.text_input("Telefone*")
             categoria = st.selectbox(
-                "Categoria do Serviço*",
+                "Categoria do Serviço*"),
                 options=list(categorias_tags.keys())
             
             tags_selecionadas = st.multiselect(
