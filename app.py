@@ -85,6 +85,8 @@ class Fornecedor(Base):
     instagram = Column(String(100))
     facebook = Column(String(100))
     linkedin = Column(String(100))
+    cidade = Column(String(50))  # Novo campo
+    estado = Column(String(50))  # Novo campo
 
 # Criar as tabelas no banco de dados, se não existirem
 Base.metadata.create_all(engine)
@@ -112,7 +114,9 @@ def salvar_fornecedor(dados):
             resumo_escopo=dados['resumo_escopo'],
             instagram=dados['instagram'],
             facebook=dados['facebook'],
-            linkedin=dados['linkedin']
+            linkedin=dados['linkedin'],
+            cidade=dados['cidade'],  # Inserir cidade
+            estado=dados['estado']   # Inserir estado
         )
         
         # Adicionar e salvar no banco de dados
@@ -199,13 +203,25 @@ with aba1:
             options=tags_disponiveis
         )
 
+        # Filtro por Cidade e Estado
+        cidade_filtro = st.text_input("Filtrar por cidade", "")
+        estado_filtro = st.text_input("Filtrar por estado", "")
+        
     with col2:
         # Consultar o banco de dados PostgreSQL
         session = Session()
+        query = session.query(Fornecedor)
+        
         if categoria_filtro != "TODAS":
-            fornecedores = session.query(Fornecedor).filter_by(categoria=categoria_filtro).all()
-        else:
-            fornecedores = session.query(Fornecedor).all()
+            query = query.filter_by(categoria=categoria_filtro)
+        
+        if cidade_filtro:
+            query = query.filter(Fornecedor.cidade.ilike(f"%{cidade_filtro}%"))
+        
+        if estado_filtro:
+            query = query.filter(Fornecedor.estado.ilike(f"%{estado_filtro}%"))
+        
+        fornecedores = query.all()
         
         if fornecedores:
             st.write(f"**Fornecedores encontrados:** {len(fornecedores)}")
@@ -220,6 +236,8 @@ with aba1:
                     {fornecedor.resumo_escopo}  
                     **Redes Sociais:**  
                     {', '.join(filter(None, [fornecedor.instagram, fornecedor.facebook, fornecedor.linkedin]))}
+                    **Cidade:** {fornecedor.cidade}  
+                    **Estado:** {fornecedor.estado}
                     """)
         else:
             st.info("Nenhum fornecedor cadastrado ainda")
@@ -256,6 +274,9 @@ with aba2:
                 height=100,
                 help="Descreva resumidamente o serviço oferecido"
             )
+            
+            cidade = st.text_input("Cidade*")
+            estado = st.text_input("Estado*")
         
         with c2:
             st.subheader("Dados Opcionais", divider='gray')
@@ -275,7 +296,9 @@ with aba2:
                 "E-mail": email,
                 "Telefone": telefone,
                 "Tags": tags_selecionadas,
-                "Resumo do Escopo": resumo_escopo
+                "Resumo do Escopo": resumo_escopo,
+                "Cidade": cidade,
+                "Estado": estado
             }
             
             for campo, valor in campos_obrigatorios.items():
@@ -303,7 +326,9 @@ with aba2:
                     'resumo_escopo': resumo_escopo.strip(),
                     'instagram': instagram.strip(),
                     'facebook': facebook.strip(),
-                    'linkedin': linkedin.strip()
+                    'linkedin': linkedin.strip(),
+                    'cidade': cidade.strip(),
+                    'estado': estado.strip()
                 }
                 
                 if salvar_fornecedor(dados):
@@ -323,15 +348,17 @@ with aba2:
                         'resumo_escopo': dados['resumo_escopo'],
                         'instagram': dados['instagram'],
                         'facebook': dados['facebook'],
-                        'linkedin': dados['linkedin']
+                        'linkedin': dados['linkedin'],
+                        'cidade': dados['cidade'],
+                        'estado': dados['estado']
                     }])
                     fornecedores_df.to_csv("fornecedores.csv", index=False)
 
                     # Chamar função para fazer upload do CSV para o GitHub
                     upload_to_github(
                         'fornecedores.csv',
-                        github_token="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",
-                        repo_name="bancodedadoseventos1"
+                        github_token="ithub_pat_11BRRDQHA0ispg8koxszxD_tAjrwNBvo7aGAjVrglawkSeDUJBJIo7kv0bj4eLCECtY2MPGTXHztplVavE",
+                        repo_name="nome_do_repositorio"
                     )
 
                 else:
