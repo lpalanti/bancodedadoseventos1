@@ -51,7 +51,7 @@ except FileNotFoundError:
     st.error("Arquivo categorias_tags.json não encontrado!")
     st.stop()
 
-# Funções principais (mantidas as mesmas)
+# Funções principais
 def validar_cnpj(cnpj):
     padrao = r"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$"
     return re.match(padrao, cnpj) is not None
@@ -97,7 +97,64 @@ st.title("📁 Banco de Fornecedores para Eventos")
 aba1, aba2 = st.tabs(["Buscar Fornecedores", "Cadastrar Novo Fornecedor"])
 
 with aba1:
-    # (Mantido igual ao anterior)
+    st.header("Busca de Fornecedores")
+    
+    col1, col2 = st.columns([1, 3])
+    
+    with col1:
+        categoria_filtro = st.selectbox(
+            "Selecione a Categoria",
+            options=["TODAS"] + list(categorias_tags.keys()),
+            index=0
+        )
+        
+        if categoria_filtro != "TODAS":
+            tags_disponiveis = categorias_tags[categoria_filtro]
+        else:
+            tags_disponiveis = []
+            for cat in categorias_tags.values():
+                tags_disponiveis.extend(cat)
+            tags_disponiveis = sorted(list(set(tags_disponiveis)))
+            
+        tags_filtro = st.multiselect(
+            "Filtrar por Tags",
+            options=tags_disponiveis
+        )
+
+    with col2:
+        try:
+            df = pd.read_csv("https://raw.githubusercontent.com/lpalanti/bancodedadoseventos1/main/fornecedores.csv")
+        except:
+            st.error("Erro ao carregar base de dados")
+            df = pd.DataFrame()
+        
+        # Aplicar filtros
+        if not df.empty:
+            if categoria_filtro != "TODAS":
+                df = df[df.categoria == categoria_filtro]
+            
+            if tags_filtro:
+                df = df[df.tags.apply(
+                    lambda x: any(tag in str(x).split(", ") for tag in tags_filtro)
+                )]
+            
+            # Mostrar resultados
+            st.write(f"**Fornecedores encontrados:** {len(df)}")
+            
+            for _, row in df.iterrows():
+                with st.expander(f"{row.nome_fantasia} - {row.categoria}", expanded=False):
+                    st.markdown(f"""
+                    **Razão Social:** {row.razao_social}  
+                    **CNPJ:** {row.cnpj}  
+                    **Contato:** {row.telefone} | {row.email}  
+                    **Tags:** {row.tags}  
+                    **Escopo do Serviço:**  
+                    {row.resumo_escopo}  
+                    **Redes Sociais:**  
+                    {', '.join(filter(None, [row.instagram, row.facebook, row.linkedin]))}
+                    """)
+        else:
+            st.info("Nenhum fornecedor cadastrado ainda")
 
 with aba2:
     st.header("Cadastro de Novo Fornecedor")
