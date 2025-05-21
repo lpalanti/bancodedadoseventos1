@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
-import re
-import json
+import psycopg2
 from sqlalchemy import create_engine
+import csv
+import json
+import re
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.orm import sessionmaker
 
-# Configuração da página
+# Configuração da página do Streamlit
 st.set_page_config(
     page_title="Banco de Fornecedores para Eventos",
     page_icon="📁",
@@ -60,8 +62,10 @@ except FileNotFoundError:
     st.error("Arquivo categorias_tags.json não encontrado!")
     st.stop()
 
-# Configuração do banco de dados PostgreSQL usando a URL fornecida do Heroku
+# URL de Conexão com o banco de dados PostgreSQL
 DATABASE_URL = "postgresql://u4d0g10bap3vp2:pb779825107188fe08afab88c6451add2551c6b9b7efa685cf2a29d1cf86d12bf@ccpa7stkruda3o.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/db6jbtlveansek"
+
+# Configuração do banco de dados PostgreSQL usando SQLAlchemy
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
@@ -124,6 +128,40 @@ def salvar_fornecedor(dados):
         st.error(f"Erro ao salvar: {str(e)}")
         return False
 
+# Função para extrair dados do PostgreSQL e salvar em um arquivo CSV
+def exportar_dados_para_csv():
+    try:
+        # Conectar ao banco de dados
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+
+        # Consulta SQL para obter os dados da tabela 'fornecedores'
+        query = "SELECT * FROM fornecedores"
+        cursor.execute(query)
+
+        # Recupera todos os dados da consulta
+        dados = cursor.fetchall()
+
+        # Nome do arquivo CSV
+        nome_arquivo = 'fornecedores.csv'
+
+        # Escrever os dados no arquivo CSV
+        with open(nome_arquivo, 'w', newline='') as file:
+            writer = csv.writer(file)
+            # Escrever o cabeçalho com o nome das colunas
+            writer.writerow([desc[0] for desc in cursor.description])
+            # Escrever os dados da consulta
+            writer.writerows(dados)
+
+        # Fechar cursor e conexão
+        cursor.close()
+        conn.close()
+
+        st.success(f"Dados exportados com sucesso para {nome_arquivo}")
+
+    except Exception as e:
+        st.error(f"Erro ao exportar dados: {str(e)}")
+
 # Interface principal
 st.title("📁 Banco de Fornecedores para Eventos")
 
@@ -180,6 +218,10 @@ with aba1:
             st.info("Nenhum fornecedor cadastrado ainda")
         
         session.close()
+
+        # Botão para exportar os dados
+        if st.button('Exportar Dados para CSV'):
+            exportar_dados_para_csv()
 
 with aba2:
     st.header("Cadastro de Novo Fornecedor")
