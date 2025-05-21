@@ -330,8 +330,8 @@ with aba2:
                     # Chamar função para fazer upload do CSV para o GitHub
                     upload_to_github(
                         'fornecedores.csv',
-                        github_token="ithub_pat_11BRRDQHA0ispg8koxszxD_tAjrwNBvo7aGAjVrglawkSeDUJBJIo7kv0bj4eLCECtY2MPGTXHztplVavE",
-                        repo_name="nome_do_repositorio"
+                        github_token="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",
+                        repo_name="bancodedadoseventos1"
                     )
 
                 else:
