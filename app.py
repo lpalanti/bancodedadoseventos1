@@ -140,6 +140,7 @@ with aba1:
     else:
         st.info("Nenhum fornecedor cadastrado ainda")
 
+
 with aba2:
     st.header("Cadastro de Novo Fornecedor")
     
