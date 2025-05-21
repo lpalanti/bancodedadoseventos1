@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import inspect
 
 # Configuração da página
 st.set_page_config(
@@ -90,6 +91,20 @@ class Fornecedor(Base):
 
 # Criar as tabelas no banco de dados, se não existirem
 Base.metadata.create_all(engine)
+
+# Verificar se a coluna 'cidade' e 'estado' já existe
+def verificar_colunas():
+    inspector = inspect(engine)
+    columns = [column['name'] for column in inspector.get_columns('fornecedores')]
+    if 'cidade' not in columns:
+        st.warning("A coluna 'cidade' não existe. Criando a coluna...")
+        engine.execute('ALTER TABLE fornecedores ADD COLUMN cidade VARCHAR(50)')
+    
+    if 'estado' not in columns:
+        st.warning("A coluna 'estado' não existe. Criando a coluna...")
+        engine.execute('ALTER TABLE fornecedores ADD COLUMN estado VARCHAR(50)')
+
+verificar_colunas()
 
 # Função para validar o CNPJ
 def validar_cnpj(cnpj):
