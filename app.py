@@ -64,10 +64,12 @@ def validar_cnpj(cnpj):
 
 def salvar_fornecedor(dados):
     try:
+        # Conectar ao GitHub
         g = Github(st.secrets["GITHUB_TOKEN"])
         repo = g.get_repo("lpalanti/bancodedadoseventos1")
         contents = repo.get_contents("fornecedores.csv")
         
+        # Preparar os dados a serem salvos
         campos = [
             dados['nome_fantasia'],
             dados['razao_social'],
@@ -82,8 +84,14 @@ def salvar_fornecedor(dados):
             dados['linkedin']
         ]
         novo_registro = ','.join(f'"{value}"' for value in campos)
-        novos_dados = contents.decoded_content.decode() + f"\n{novo_registro}"
         
+        # Decodificar o conteúdo atual do CSV
+        arquivo_atual = contents.decoded_content.decode()
+        
+        # Adicionar o novo registro
+        novos_dados = arquivo_atual + f"\n{novo_registro}"
+        
+        # Atualizar o arquivo no repositório
         repo.update_file(
             path=contents.path,
             message=f"Adicionar fornecedor: {dados['nome_fantasia']}",
