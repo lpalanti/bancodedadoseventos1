@@ -96,13 +96,15 @@ Base.metadata.create_all(engine)
 def verificar_colunas():
     inspector = inspect(engine)
     columns = [column['name'] for column in inspector.get_columns('fornecedores')]
-    if 'cidade' not in columns:
-        st.warning("A coluna 'cidade' não existe. Criando a coluna...")
-        engine.execute('ALTER TABLE fornecedores ADD COLUMN cidade VARCHAR(50)')
     
-    if 'estado' not in columns:
-        st.warning("A coluna 'estado' não existe. Criando a coluna...")
-        engine.execute('ALTER TABLE fornecedores ADD COLUMN estado VARCHAR(50)')
+    with engine.connect() as conn:
+        if 'cidade' not in columns:
+            st.warning("A coluna 'cidade' não existe. Criando a coluna...")
+            conn.execute('ALTER TABLE fornecedores ADD COLUMN cidade VARCHAR(50)')
+        
+        if 'estado' not in columns:
+            st.warning("A coluna 'estado' não existe. Criando a coluna...")
+            conn.execute('ALTER TABLE fornecedores ADD COLUMN estado VARCHAR(50)')
 
 verificar_colunas()
 
