@@ -126,6 +126,7 @@ st.title("📁 Banco de Fornecedores para Eventos")
 
 aba1, aba2 = st.tabs(["Buscar Fornecedores", "Cadastrar Novo Fornecedor"])
 
+# Aba de Busca de Fornecedores
 with aba1:
     st.header("Busca de Fornecedores")
     
@@ -178,6 +179,7 @@ with aba1:
         
         session.close()
 
+# Aba de Cadastro de Novo Fornecedor
 with aba2:
     st.header("Cadastro de Novo Fornecedor")
     
