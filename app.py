@@ -380,3 +380,4 @@ with aba2:
 
                 else:
                     st.toast("❌ Erro ao salvar no banco de dados", icon="⚠️")
+
