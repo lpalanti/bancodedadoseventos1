@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import re
 import json
-from github import Github
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy.orm import sessionmaker
 
 # Configuração da página
 st.set_page_config(
@@ -57,47 +60,62 @@ except FileNotFoundError:
     st.error("Arquivo categorias_tags.json não encontrado!")
     st.stop()
 
-# Funções principais
+# Configuração do banco de dados PostgreSQL
+DATABASE_URL = "postgresql://username:password@localhost/dbname"  # Substitua com suas credenciais
+engine = create_engine(DATABASE_URL)
+Base = declarative_base()
+Session = sessionmaker(bind=engine)
+
+# Definir a tabela do banco de dados
+class Fornecedor(Base):
+    __tablename__ = 'fornecedores'
+    
+    id = Column(Integer, primary_key=True)
+    nome_fantasia = Column(String(100))
+    razao_social = Column(String(100))
+    cnpj = Column(String(18))
+    email = Column(String(100))
+    telefone = Column(String(20))
+    categoria = Column(String(50))
+    tags = Column(Text)
+    resumo_escopo = Column(Text)
+    instagram = Column(String(100))
+    facebook = Column(String(100))
+    linkedin = Column(String(100))
+
+# Função para validar o CNPJ
 def validar_cnpj(cnpj):
     padrao = r"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$"
     return re.match(padrao, cnpj) is not None
 
+# Função para salvar o fornecedor no banco de dados
 def salvar_fornecedor(dados):
     try:
-        # Conectar ao GitHub
-        g = Github(st.secrets["GITHUB_TOKEN"])
-        repo = g.get_repo("lpalanti/bancodedadoseventos1")
-        contents = repo.get_contents("fornecedores.csv")
+        # Criar uma sessão com o banco de dados
+        session = Session()
         
-        # Preparar os dados a serem salvos
-        campos = [
-            dados['nome_fantasia'],
-            dados['razao_social'],
-            dados['cnpj'],
-            dados['email'],
-            dados['telefone'],
-            dados['categoria'],
-            dados['tags'],
-            dados['resumo_escopo'],
-            dados['instagram'],
-            dados['facebook'],
-            dados['linkedin']
-        ]
-        novo_registro = ','.join(f'"{value}"' for value in campos)
-        
-        # Decodificar o conteúdo atual do CSV
-        arquivo_atual = contents.decoded_content.decode()
-        
-        # Adicionar o novo registro
-        novos_dados = arquivo_atual + f"\n{novo_registro}"
-        
-        # Atualizar o arquivo no repositório
-        repo.update_file(
-            path=contents.path,
-            message=f"Adicionar fornecedor: {dados['nome_fantasia']}",
-            content=novos_dados,
-            sha=contents.sha
+        # Criar o novo fornecedor
+        novo_fornecedor = Fornecedor(
+            nome_fantasia=dados['nome_fantasia'],
+            razao_social=dados['razao_social'],
+            cnpj=dados['cnpj'],
+            email=dados['email'],
+            telefone=dados['telefone'],
+            categoria=dados['categoria'],
+            tags=dados['tags'],
+            resumo_escopo=dados['resumo_escopo'],
+            instagram=dados['instagram'],
+            facebook=dados['facebook'],
+            linkedin=dados['linkedin']
         )
+        
+        # Adicionar e salvar no banco de dados
+        session.add(novo_fornecedor)
+        session.commit()
+        
+        # Fechar a sessão
+        session.close()
+        
         return True
     except Exception as e:
         st.error(f"Erro ao salvar: {str(e)}")
@@ -134,37 +152,31 @@ with aba1:
         )
 
     with col2:
-        try:
-            df = pd.read_csv("https://raw.githubusercontent.com/lpalanti/bancodedadoseventos1/main/fornecedores.csv")
-        except:
-            st.error("Erro ao carregar base de dados")
-            df = pd.DataFrame()
+        # Consultar o banco de dados PostgreSQL
+        session = Session()
+        if categoria_filtro != "TODAS":
+            fornecedores = session.query(Fornecedor).filter_by(categoria=categoria_filtro).all()
+        else:
+            fornecedores = session.query(Fornecedor).all()
         
-        if not df.empty:
-            if categoria_filtro != "TODAS":
-                df = df[df.categoria == categoria_filtro]
-            
-            if tags_filtro:
-                df = df[df.tags.apply(
-                    lambda x: any(tag in str(x).split(", ") for tag in tags_filtro)
-                )]
-            
-            st.write(f"**Fornecedores encontrados:** {len(df)}")
-            
-            for _, row in df.iterrows():
-                with st.expander(f"{row.nome_fantasia} - {row.categoria}", expanded=False):
+        if fornecedores:
+            st.write(f"**Fornecedores encontrados:** {len(fornecedores)}")
+            for fornecedor in fornecedores:
+                with st.expander(f"{fornecedor.nome_fantasia} - {fornecedor.categoria}", expanded=False):
                     st.markdown(f"""
-                    **Razão Social:** {row.razao_social}  
-                    **CNPJ:** {row.cnpj}  
-                    **Contato:** {row.telefone} | {row.email}  
-                    **Tags:** {row.tags}  
+                    **Razão Social:** {fornecedor.razao_social}  
+                    **CNPJ:** {fornecedor.cnpj}  
+                    **Contato:** {fornecedor.telefone} | {fornecedor.email}  
+                    **Tags:** {fornecedor.tags}  
                     **Escopo do Serviço:**  
-                    {row.resumo_escopo}  
+                    {fornecedor.resumo_escopo}  
                     **Redes Sociais:**  
-                    {', '.join(filter(None, [row.instagram, row.facebook, row.linkedin]))}
+                    {', '.join(filter(None, [fornecedor.instagram, fornecedor.facebook, fornecedor.linkedin]))}
                     """)
         else:
             st.info("Nenhum fornecedor cadastrado ainda")
+        
+        session.close()
 
 with aba2:
     st.header("Cadastro de Novo Fornecedor")
