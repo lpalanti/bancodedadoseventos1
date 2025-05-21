@@ -40,6 +40,12 @@ div[data-baseweb="textarea"] textarea {
     color: #FFFFFF !important;
     background-color: #444444 !important;
 }
+
+/* Toast customization */
+.st-emotion-cache-1n6lq0l {
+    background-color: #4CAF50 !important;
+    color: white !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -62,7 +68,6 @@ def salvar_fornecedor(dados):
         repo = g.get_repo("lpalanti/bancodedadoseventos1")
         contents = repo.get_contents("fornecedores.csv")
         
-        # Converter dados para linha CSV
         campos = [
             dados['nome_fantasia'],
             dados['razao_social'],
@@ -79,7 +84,6 @@ def salvar_fornecedor(dados):
         novo_registro = ','.join(f'"{value}"' for value in campos)
         novos_dados = contents.decoded_content.decode() + f"\n{novo_registro}"
         
-        # Fazer commit
         repo.update_file(
             path=contents.path,
             message=f"Adicionar fornecedor: {dados['nome_fantasia']}",
@@ -128,17 +132,15 @@ with aba1:
             st.error("Erro ao carregar base de dados")
             df = pd.DataFrame()
         
-        # Aplicar filtros
         if not df.empty:
             if categoria_filtro != "TODAS":
                 df = df[df.categoria == categoria_filtro]
             
             if tags_filtro:
                 df = df[df.tags.apply(
-                    lambda x: any(tag in str(x).split(", ") for tag in tags_filtro)
+                    lambda x: any(tag in str(x).split(", ") for tag in tags_filtro
                 )]
             
-            # Mostrar resultados
             st.write(f"**Fornecedores encontrados:** {len(df)}")
             
             for _, row in df.iterrows():
@@ -193,10 +195,11 @@ with aba2:
             facebook = st.text_input("Facebook (URL ou nome)", help="Página no Facebook")
             linkedin = st.text_input("LinkedIn (URL)", help="Perfil no LinkedIn")
         
-        if st.form_submit_button("Cadastrar Fornecedor"):
+        submitted = st.form_submit_button("Cadastrar Fornecedor")
+        
+        if submitted:
             erros = []
             
-            # Validação de campos obrigatórios
             campos_obrigatorios = {
                 "Nome Fantasia": nome_fantasia,
                 "Razão Social": razao_social,
@@ -219,7 +222,7 @@ with aba2:
             
             if erros:
                 for erro in erros:
-                    st.error(erro)
+                    st.toast(f"❌ {erro}", icon="⚠️")
             else:
                 dados = {
                     'nome_fantasia': nome_fantasia.strip(),
@@ -236,7 +239,7 @@ with aba2:
                 }
                 
                 if salvar_fornecedor(dados):
-                    st.success("Fornecedor cadastrado com sucesso!")
+                    st.toast("✅ Fornecedor cadastrado com sucesso!", icon="🎉")
                     st.balloons()
                 else:
-                    st.error("Erro ao salvar no banco de dados")
+                    st.toast("❌ Erro ao salvar no banco de dados", icon="⚠️")
