@@ -83,6 +83,9 @@ class Fornecedor(Base):
     facebook = Column(String(100))
     linkedin = Column(String(100))
 
+# Criar as tabelas no banco de dados, se não existirem
+Base.metadata.create_all(engine)
+
 # Função para validar o CNPJ
 def validar_cnpj(cnpj):
     padrao = r"^\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}$"
