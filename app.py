@@ -120,7 +120,7 @@ with aba1:
         if tags_filtro:
             df = df[df.tags.apply(  # <-- CORREÇÃO AQUI
                 lambda x: any(tag in str(x).split(", ") for tag in tags_filtro
-            )]  # <-- FECHAMENTO CORRETO DOS PARÊNTESES
+            ]  # <-- FECHAMENTO CORRETO DOS PARÊNTESES
         
         # Mostrar resultados
         st.write(f"**Fornecedores encontrados:** {len(df)}")
