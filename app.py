@@ -105,7 +105,7 @@ with aba1:
             options=tags_disponiveis
         )
     
-   with col2:
+with col2:
     try:
         df = pd.read_csv("https://raw.githubusercontent.com/lpalanti/bancodedadoseventos1/main/fornecedores.csv")
     except:
@@ -114,13 +114,13 @@ with aba1:
     
     # Aplicar filtros
     if not df.empty:
-        if categoria_filtro != "TODAS":
-            df = df[df.categoria == categoria_filtro]
+    if categoria_filtro != "TODAS":
+        df = df[df.categoria == categoria_filtro]
         
-        if tags_filtro:
-            df = df[df.tags.apply(
-                lambda x: any(tag in str(x).split(", ") for tag in tags_filtro)
-            )]  # <-- FECHAMENTO CORRETO DOS PARÊNTESES
+    if tags_filtro:
+        df = df[df.tags.apply(
+            lambda x: any(tag in str(x).split(", ") for tag in tags_filtro)
+        )]  # <-- FECHAMENTO CORRETO DOS PARÊNTESES
         
         # Mostrar resultados
         st.write(f"**Fornecedores encontrados:** {len(df)}")
