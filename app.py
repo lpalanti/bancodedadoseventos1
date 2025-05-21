@@ -1,15 +1,16 @@
 import streamlit as st
 import pandas as pd
-import psycopg2
-from sqlalchemy import create_engine
-import csv
-import json
 import re
+import json
+import requests
+import base64
+
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
 from sqlalchemy.orm import sessionmaker
 
-# Configuração da página do Streamlit
+# Configuração da página
 st.set_page_config(
     page_title="Banco de Fornecedores para Eventos",
     page_icon="📁",
@@ -62,10 +63,8 @@ except FileNotFoundError:
     st.error("Arquivo categorias_tags.json não encontrado!")
     st.stop()
 
-# URL de Conexão com o banco de dados PostgreSQL
+# Configuração do banco de dados PostgreSQL usando a URL fornecida do Heroku
 DATABASE_URL = "postgresql://u4d0g10bap3vp2:pb779825107188fe08afab88c6451add2551c6b9b7efa685cf2a29d1cf86d12bf@ccpa7stkruda3o.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/db6jbtlveansek"
-
-# Configuração do banco de dados PostgreSQL usando SQLAlchemy
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
@@ -128,39 +127,47 @@ def salvar_fornecedor(dados):
         st.error(f"Erro ao salvar: {str(e)}")
         return False
 
-# Função para extrair dados do PostgreSQL e salvar em um arquivo CSV
-def exportar_dados_para_csv():
-    try:
-        # Conectar ao banco de dados
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
+# Função para enviar o arquivo para o GitHub
+def upload_to_github(file_path, github_token, repo_name, branch="main"):
+    # Carregar o arquivo CSV
+    with open(file_path, "rb") as f:
+        file_content = f.read()
 
-        # Consulta SQL para obter os dados da tabela 'fornecedores'
-        query = "SELECT * FROM fornecedores"
-        cursor.execute(query)
+    # Codifica o conteúdo do arquivo em base64
+    file_content_b64 = base64.b64encode(file_content).decode('utf-8')
 
-        # Recupera todos os dados da consulta
-        dados = cursor.fetchall()
+    # URL da API para enviar o arquivo para o repositório
+    api_url = f"https://api.github.com/repos/{repo_name}/contents/{file_path}"
 
-        # Nome do arquivo CSV
-        nome_arquivo = 'fornecedores.csv'
+    # Obtenha o SHA se o arquivo já existir
+    headers = {
+        "Authorization": f"token {github_token}"
+    }
+    
+    response = requests.get(api_url, headers=headers)
+    if response.status_code == 200:
+        file_info = response.json()
+        sha = file_info['sha']
+    else:
+        sha = None
 
-        # Escrever os dados no arquivo CSV
-        with open(nome_arquivo, 'w', newline='') as file:
-            writer = csv.writer(file)
-            # Escrever o cabeçalho com o nome das colunas
-            writer.writerow([desc[0] for desc in cursor.description])
-            # Escrever os dados da consulta
-            writer.writerows(dados)
+    # Dados do commit
+    commit_data = {
+        "message": "Atualizando o arquivo fornecedores.csv",
+        "content": file_content_b64,
+        "branch": branch
+    }
+    
+    if sha:
+        commit_data["sha"] = sha
 
-        # Fechar cursor e conexão
-        cursor.close()
-        conn.close()
+    # Enviar o arquivo para o GitHub
+    response = requests.put(api_url, headers=headers, data=json.dumps(commit_data))
 
-        st.success(f"Dados exportados com sucesso para {nome_arquivo}")
-
-    except Exception as e:
-        st.error(f"Erro ao exportar dados: {str(e)}")
+    if response.status_code == 201 or response.status_code == 200:
+        st.success("Arquivo atualizado no GitHub com sucesso!")
+    else:
+        st.error(f"Erro ao atualizar o arquivo: {response.status_code} - {response.text}")
 
 # Interface principal
 st.title("📁 Banco de Fornecedores para Eventos")
@@ -218,10 +225,6 @@ with aba1:
             st.info("Nenhum fornecedor cadastrado ainda")
         
         session.close()
-
-        # Botão para exportar os dados
-        if st.button('Exportar Dados para CSV'):
-            exportar_dados_para_csv()
 
 with aba2:
     st.header("Cadastro de Novo Fornecedor")
@@ -306,5 +309,30 @@ with aba2:
                 if salvar_fornecedor(dados):
                     st.toast("✅ Fornecedor cadastrado com sucesso!", icon="🎉")
                     st.balloons()
+
+                    # Salvar e enviar o CSV para o GitHub
+                    # Gerar o CSV
+                    fornecedores_df = pd.DataFrame([{
+                        'nome_fantasia': dados['nome_fantasia'],
+                        'razao_social': dados['razao_social'],
+                        'cnpj': dados['cnpj'],
+                        'email': dados['email'],
+                        'telefone': dados['telefone'],
+                        'categoria': dados['categoria'],
+                        'tags': dados['tags'],
+                        'resumo_escopo': dados['resumo_escopo'],
+                        'instagram': dados['instagram'],
+                        'facebook': dados['facebook'],
+                        'linkedin': dados['linkedin']
+                    }])
+                    fornecedores_df.to_csv("fornecedores.csv", index=False)
+
+                    # Chamar função para fazer upload do CSV para o GitHub
+                    upload_to_github(
+                        'fornecedores.csv',
+                        github_token="ithub_pat_11BRRDQHA0ispg8koxszxD_tAjrwNBvo7aGAjVrglawkSeDUJBJIo7kv0bj4eLCECtY2MPGTXHztplVavE",
+                        repo_name="nome_do_repositorio"
+                    )
+
                 else:
                     st.toast("❌ Erro ao salvar no banco de dados", icon="⚠️")
