@@ -60,8 +60,8 @@ except FileNotFoundError:
     st.error("Arquivo categorias_tags.json não encontrado!")
     st.stop()
 
-# Configuração do banco de dados PostgreSQL
-DATABASE_URL = "postgresql://username:password@localhost/dbname"  # Substitua com suas credenciais
+# Configuração do banco de dados PostgreSQL usando a URL fornecida do Heroku
+DATABASE_URL = "postgres://u4d0g10bap3vp2:pb779825107188fe08afab88c6451add2551c6b9b7efa685cf2a29d1cf86d12bf@ccpa7stkruda3o.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/db6jbtlveansek"
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
@@ -126,7 +126,6 @@ st.title("📁 Banco de Fornecedores para Eventos")
 
 aba1, aba2 = st.tabs(["Buscar Fornecedores", "Cadastrar Novo Fornecedor"])
 
-# Aba de Busca de Fornecedores
 with aba1:
     st.header("Busca de Fornecedores")
     
@@ -179,7 +178,6 @@ with aba1:
         
         session.close()
 
-# Aba de Cadastro de Novo Fornecedor
 with aba2:
     st.header("Cadastro de Novo Fornecedor")
     
